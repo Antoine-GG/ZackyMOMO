@@ -32,12 +32,6 @@ uint8_t SPI_MasterTransmit(uint8_t data) {
 	return SPDR;
 }
 
-void LED_SetState(uint8_t state) {
-	// Éteindre toutes les LED
-	PORTC &= ~((1 << LED1) | (1 << LED2) | (1 << LED3));
-	
-}
-
 int main() {
 	// Initialize SPI as master
 	SPI_MasterInit();
@@ -49,27 +43,34 @@ int main() {
 
 	while (1) {
 		// Envoyer la commande pour allumer la LED 1
-		SPI_MasterTransmit('A');
+		SPI_MasterTransmit(0b10000000);
 		_delay_ms(10);
 		receivedData = SPI_MasterTransmit(0xFF);
 		
-		if(receivedData == 'B'){
-			PORTC |= (1 << LED1);
-			PORTC &= ~(1 << LED2);
-		}
+		uint8_t porte    = 0b00000001 & receivedData;
+		uint8_t fenetre1 = 0b00000010 & receivedData;
+		uint8_t fenetre2 = 0b00000100 & receivedData;
 
-		_delay_ms(1000); // Attendre 1 seconde
-//////////////////////////////////////////////////////////////////		
-		SPI_MasterTransmit('C');
-		_delay_ms(10);
-		receivedData = SPI_MasterTransmit(0xFF);
-				
-		if(receivedData == 'D'){
-			PORTC &= ~(1 << LED1);
+		//LED1
+		if(porte > 0){
+			PORTC |= (1 << LED1);
+		}
+		else{PORTC &= ~(1 << LED1);}
+		//LED2
+		if(fenetre1 > 0){
 			PORTC |= (1 << LED2);
 		}
+		else{PORTC &= ~(1 << LED2);}
+		//LED3
+		if(fenetre2 > 0){
+			PORTC |= (1 << LED3);
+		}
+		else{PORTC &= ~(1 << LED3);}
+
 
 		_delay_ms(1000); // Attendre 1 seconde
+				
+
 		
 	}
 
