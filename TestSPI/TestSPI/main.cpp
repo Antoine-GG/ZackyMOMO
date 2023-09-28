@@ -1,49 +1,168 @@
-/*
- * TestSPI.cpp
- *
- * Created: 2023-09-08 12:39:33
- * Author : Zachary Simard
- * inspiration: http://www.rjhcoding.com/avrc-spi.php
- */ 
-
 #include <avr/io.h>
-#define SPI_DDR DDRB
-#define CS      PINB2
-#define MOSI    PINB3
-#define MISO    PINB4
-#define SCK     PINB5
-#define SS1		PINB6 //
-#define SS2		PINB7 //
+#include <avr/interrupt.h>
+#include <util/delay.h>
 
-void SPI_init()
-{
-	// set CS, MOSI and SCK to output
-	SPI_DDR |= (1 << CS) | (1 << MOSI) | (1 << SCK);
+// Broches SPI Maître
+#define SS   2   // Broche Slave Select (SS) du Maître (à personnaliser)
+#define MOSI 3   // Broche MOSI (Master Out Slave In)
+#define MISO 4   // Broche MISO (Master In Slave Out)
+#define SCK  5   // Broche SCK (Clock)
 
-	// enable SPI, set as master, and clock to fosc/128
-	SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR1) | (1 << SPR0);
+// Broches de contrôle des LED
+#define LED1 PINC0
+#define LED2 PINC1
+#define LED3 PINC2
+
+void SPI_MasterInit() {
+	// Set MOSI, SCK, and SS as outputs
+	DDRB |= (1 << MOSI) | (1 << SCK) | (1 << SS);
+	// Enable SPI, Set as Master, clock rate fck/16
+	SPCR |= (1 << SPE) | (1 << MSTR) | (1 << SPR0);
 }
 
-void SPI_masterTransmitByte(uint8_t data,uint8_t SelectionSlave)
-{
-    // drive slave select low
-    SPI_DDR &= ~(1 << SelectionSlave);
+// Fonction pour transférer des données via SPI
+uint8_t SPI_MasterTransmit(uint8_t data) {
+	PORTB &= ~(1<<SS);
+	// Start transmission
+	SPDR = data;
+	// Wait for transmission to complete
+	while (!(SPSR & (1 << SPIF)));
+	PORTB |= (1<<SS);
+	// Return received data
+	return SPDR;
+}
+
+void LED_SetState(uint8_t state) {
+	// Éteindre toutes les LED
+	PORTC &= ~((1 << LED1) | (1 << LED2) | (1 << LED3));
+	
+}
+
+int main() {
+	// Initialize SPI as master
+	SPI_MasterInit();
+
+	// Configuration des broches de contrôle des LED comme sorties
+	DDRC |= (1 << LED1) | (1 << LED2) | (1 << LED3);
+
+	uint8_t receivedData;
+
+	while (1) {
+		// Envoyer la commande pour allumer la LED 1
+		SPI_MasterTransmit('A');
+		_delay_ms(10);
+		receivedData = SPI_MasterTransmit(0xFF);
 		
-	// load data into register
+		if(receivedData == 'B'){
+			PORTC |= (1 << LED1);
+			PORTC &= ~(1 << LED2);
+		}
+
+		_delay_ms(1000); // Attendre 1 seconde
+//////////////////////////////////////////////////////////////////		
+		SPI_MasterTransmit('C');
+		_delay_ms(10);
+		receivedData = SPI_MasterTransmit(0xFF);
+				
+		if(receivedData == 'D'){
+			PORTC &= ~(1 << LED1);
+			PORTC |= (1 << LED2);
+		}
+
+		_delay_ms(1000); // Attendre 1 seconde
+		
+	}
+
+	return 0;
+}
+
+
+/*#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <util/delay.h>
+
+// Broches SPI Maître
+#define SS   2   // Broche Slave Select (SS) du Maître (à personnaliser)
+#define MOSI 3   // Broche MOSI (Master Out Slave In)
+#define MISO 4   // Broche MISO (Master In Slave Out)
+#define SCK  5   // Broche SCK (Clock)
+
+void SPI_MasterInit() {
+	// Set MOSI, SCK, and SS as outputs
+	DDRB |= (1 << MOSI) | (1 << SCK) | (1 << SS);
+
+	// Enable SPI, Set as Master, clock rate fck/16
+	SPCR |= (1 << SPE) | (1 << MSTR) | (1 << SPR0);
+}
+
+// Fonction pour transférer des données via SPI
+uint8_t SPI_MasterTransmit(uint8_t data) {
+	// Start transmission
 	SPDR = data;
 
-	// Wait for transmission complete
-	while(!(SPSR & (1 << SPIF)));
+	// Wait for transmission to complete
+	while (!(SPSR & (1 << SPIF)))
+	;
+
+	// Return received data
+	return SPDR;
+}
+
+int main() {
+	// Initialize SPI as master
+	SPI_MasterInit();
+
+	// Variable pour stocker les données reçues
+	uint8_t receivedData;
+	uint8_t sendData;
+
+	while (1) {
+		// Envoyer une demande de données via SPI
+		uint8_t sendData = 'R'; // Envoyer le caractère 'R' pour demander des données (à personnaliser)
+		PORTB &= ~(1 << SS);    // Abaisser SS (activer l'esclave)
+
+		receivedData = SPI_MasterTransmit(sendData);
+
+		PORTB |= (1 << SS); // Lever SS (désactiver l'esclave)
+		
+		DDRC |= (1 << PINC0)|(1 << PINC1)|(1 << PINC2);
+		if(receivedData=='D'){
+			PORTC |= (1 << PINC0);
+			PORTC &= ~(1 << PINC1);
+			PORTC &= ~(1 << PINC2);
+		}
+		else{
+			if(receivedData=='E'){
+				PORTC &= ~(1 << PINC0);
+				PORTC |= (1 << PINC1);
+				PORTC &= ~(1 << PINC2);
+			}
+				else{
+					if(receivedData=='F'){
+						PORTC &= ~(1 << PINC0);
+						PORTC &= ~(1 << PINC1);
+						PORTC |= (1 << PINC2);
+						}
+					}
+		}
+				
 	
-    // return slave select to high
-    SPI_DDR |= (1 << SelectionSlave);
-}
+				
+		// Attendre un court délai pour éviter une communication trop rapide
+		_delay_ms(1000);
+		
+		sendData = 'A';
+		PORTB &= ~(1 << SS);    // Abaisser SS (activer l'esclave)
+		
+		SPI_MasterTransmit(sendData);
 
-int main(void)
-{SPI_init();
-    while (1) 
-    {
-		SPI_masterTransmitByte(1, SS1);
-    }
-}
+		PORTB |= (1 << SS); // Lever SS (désactiver l'esclave)
+		_delay_ms(1000);
+		// Utiliser receivedData selon vos besoins
+		// ...
+	}
+	
 
+	return 0;
+}
+*/

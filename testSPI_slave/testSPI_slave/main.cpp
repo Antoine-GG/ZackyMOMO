@@ -1,14 +1,5 @@
-/*
- * testSPI_slave.cpp
- *
- * Created: 2023-09-08 13:34:00
- * Author : 2132249
- */ 
-
-#define F_CPU 8000000UL
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <util/delay.h>
 
 // Broches SPI Esclave
 #define SS   2   // Broche Slave Select (SS) de l'Esclave (à personnaliser)
@@ -19,7 +10,55 @@
 void SPI_SlaveInit() {
 	// Set MISO as output
 	DDRB |= (1 << MISO);
+	// Enable SPI, Set as Slave
+	SPCR |= (1 << SPE);
+}
+
+// Fonction pour recevoir des données via SPI
+uint8_t SPI_SlaveReceive() {
+	// Wait for reception to complete
+	while (!(SPSR & (1 << SPIF)));
+	// Return received data
+	return SPDR;
+}
+
+int main() {
+	// Initialize SPI as slave
+	SPI_SlaveInit();
 	
+	// Variable pour stocker les données reçues
+	uint8_t receivedData;
+
+	while (1) {
+		// Attendre la demande du maître
+		receivedData = SPI_SlaveReceive();
+		if(receivedData=='A'){
+			SPDR='B';
+		}
+		if(receivedData=='C'){
+			SPDR='D';
+		}
+
+		// Réagir en fonction des données reçues (pas nécessaire pour l'esclave)
+	}
+
+	return 0;
+}
+
+/*#include <avr/io.h>
+#include <avr/interrupt.h>
+
+// Broches SPI Esclave
+#define SS   2   // Broche Slave Select (SS) de l'Esclave (à personnaliser)
+#define MOSI 3   // Broche MOSI (Master Out Slave In)
+#define MISO 4   // Broche MISO (Master In Slave Out)
+#define SCK  5   // Broche SCK (Clock)
+int flag = 0;
+
+void SPI_SlaveInit() {
+	// Set MISO as output
+	DDRB |= (1 << MISO);
+
 	// Enable SPI, Set as Slave
 	SPCR |= (1 << SPE);
 }
@@ -37,20 +76,44 @@ uint8_t SPI_SlaveReceive() {
 int main() {
 	// Initialize SPI as slave
 	SPI_SlaveInit();
-	DDRC |= (1 << PINC0);
 
 	uint8_t receivedData;
+	uint8_t sendData;
 
 	while (1) {
-		receivedData = SPI_SlaveReceive();
+		// Attendre la demande de données
+		while (SPI_SlaveReceive() != 'R')
+		;
 
-		// Utilisez receivedData selon vos besoins
-				if(receivedData == 'A'){
-					PORTC |= (1 << PINC0);
+		// Envoyer les données demandées via SPI
+		if(flag==0){
+			uint8_t sendData = 'D';
+			flag++;
+		}
+		else{
+			if(flag==1){
+				uint8_t sendData = 'E';
+				flag++;
+			}
+			else{
+				if(flag==2){
+					uint8_t sendData = 'F';
+					flag=0;
 				}
+			}
+		}
+
+		//uint8_t sendData = 'D'; // Envoyer le caractère 'D' comme données (à personnaliser)
+
+		SPDR = sendData; // Commencer la transmission
+
+		// Attendre la fin de la transmission
+		while (!(SPSR & (1 << SPIF)))
+		;
+
+		// Répéter le processus pour d'autres demandes de données
 	}
 
 	return 0;
 }
-
-
+*/
