@@ -41,7 +41,7 @@ int main() {
 		
 		uint8_t datatogo;					//récupère les données des INPUTs PIND
 		
-		if(receivedData==0XFF){
+		if(receivedData==0xEE){
 			uint8_t datatogo = PIND & 0x49; //ne regarder que les bits 0b0X00X00X
 			SPDR = datatogo;				//mettre le data dans le registre SPI
 		}
