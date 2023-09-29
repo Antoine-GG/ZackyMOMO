@@ -43,32 +43,31 @@ int main() {
 
 	while (1) {
 		// Envoyer la commande pour allumer la LED 1
-		SPI_MasterTransmit(0b10000000);
-		_delay_ms(10);
 		receivedData = SPI_MasterTransmit(0xFF);
+		_delay_ms(10);
 		
 		uint8_t porte    = 0b00000001 & receivedData;
-		uint8_t fenetre1 = 0b00000010 & receivedData;
-		uint8_t fenetre2 = 0b00000100 & receivedData;
+		uint8_t fenetre1 = 0b00001000 & receivedData;
+		uint8_t fenetre2 = 0b01000000 & receivedData;
 
 		//LED1
-		if(porte > 0){
+		if(porte == 0b00000001){
 			PORTC |= (1 << LED1);
 		}
 		else{PORTC &= ~(1 << LED1);}
 		//LED2
-		if(fenetre1 > 0){
+		if(fenetre1 == 0b00001000){
 			PORTC |= (1 << LED2);
 		}
 		else{PORTC &= ~(1 << LED2);}
 		//LED3
-		if(fenetre2 > 0){
+		if(fenetre2 == 0b01000000){
 			PORTC |= (1 << LED3);
 		}
 		else{PORTC &= ~(1 << LED3);}
 
 
-		_delay_ms(1000); // Attendre 1 seconde
+		_delay_ms(100);
 				
 
 		

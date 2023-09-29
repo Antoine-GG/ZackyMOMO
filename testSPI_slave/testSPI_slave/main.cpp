@@ -7,9 +7,9 @@
 #define MISO 4   // Broche MISO (Master In Slave Out)
 #define SCK  5   // Broche SCK (Clock)
 
-#define fenetre1 PC3;
-#define fenetre2 PC5;
-#define porte    PC7;
+#define fenetre1 0
+#define fenetre2 3
+#define porte    6
 
 void SPI_SlaveInit() {
 	// Set MISO as output
@@ -33,15 +33,17 @@ int main() {
 	// Variable pour stocker les données reçues
 	uint8_t receivedData;
 	
-	DDRC &= ~(1<<fenetre1) | ~(1<<fenetre2) | ~(1<<porte);
+	DDRD &= ~(1<<fenetre1); DDRD &= ~(1<<fenetre2); DDRD &= ~(1<<porte);
+	PORTD = 0xFF;
 	while (1) {
 		
 /////////////////////////////////////////////////////////////////////////////////rendu a faire le code pour allumer les dels 		
-		
+		uint8_t datatogo;
 		// Attendre la demande du maître
 		receivedData = SPI_SlaveReceive();
-		if(receivedData==0b10000000){
-			SPDR = 
+		if(receivedData==0XFF){
+			uint8_t datatogo = PIND & 0x49;
+			SPDR = datatogo;
 		}
 
 		// Réagir en fonction des données reçues (pas nécessaire pour l'esclave)
