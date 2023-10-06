@@ -3,32 +3,43 @@
 #include <util/delay.h>
 
 // Broches SPI Maître
-#define SS   2   // Broche Slave Select (SS) du Maître (à personnaliser)
+#define SS_E 1   // Broche Slave Select (SS) du Slave E
+#define SS_F 2	 // Broche Slave Select (SS) du Slave F
 #define MOSI 3   // Broche MOSI (Master Out Slave In)
 #define MISO 4   // Broche MISO (Master In Slave Out)
 #define SCK  5   // Broche SCK (Clock)
 
 // Broches de contrôle des LED
-#define LED1	    PINC0
-#define LED2	    PINC1
-#define LED3	    PINC2
-#define LED_ANALOG  PINC5
+#define LED1	    0
+#define LED2	    1
+#define LED3	    2
+#define LED_ANALOG  5
 
 void SPI_MasterInit() {
 	// Set MOSI, SCK, and SS as outputs
-	DDRB |= (1 << MOSI) | (1 << SCK) | (1 << SS);
+	DDRB |= (1 << MOSI) | (1 << SCK) | (1 << SS_F) | (1 << SS_E);
 	// Enable SPI, Set as Master, clock rate fck/16
 	SPCR |= (1 << SPE) | (1 << MSTR) | (1 << SPR0);
 }
 
 // Fonction pour transférer des données via SPI
-uint8_t SPI_MasterTransmit(uint8_t data) {
-	PORTB &= ~(1<<SS);
+uint8_t SPI_MasterTransmitE(uint8_t data) {
+	PORTB &= ~(1<<SS_E);
 	// Start transmission
 	SPDR = data;
 	// Wait for transmission to complete
 	while (!(SPSR & (1 << SPIF)));
-	PORTB |= (1<<SS);
+	PORTB |= (1<<SS_E);
+	// Return received data
+	return SPDR;
+}
+uint8_t SPI_MasterTransmitF(uint8_t data) {
+	PORTB &= ~(1<<SS_F);
+	// Start transmission
+	SPDR = data;
+	// Wait for transmission to complete
+	while (!(SPSR & (1 << SPIF)));
+	PORTB |= (1<<SS_F);
 	// Return received data
 	return SPDR;
 }
@@ -44,13 +55,14 @@ int main() {
 	uint8_t receivedData_F;
 
 	while (1) {
+		////////////////Décalage dans le Transmit/receive///////////////
 		/*Parler au Slave E*/
-		receivedData = SPI_MasterTransmit(0xEE);// Envoyer la commande pour allumer les leds
+		receivedData = SPI_MasterTransmitE(0xEE);// Envoyer la commande pour allumer les leds
 		
-		uint8_t porte    = 0b00000001 & receivedData;
-		uint8_t fenetre1 = 0b00001000 & receivedData;
-		uint8_t fenetre2 = 0b01000000 & receivedData;
-
+		uint8_t porte    = 0b00000001 & receivedData_F;
+		uint8_t fenetre1 = 0b00001000 & receivedData_F;
+		uint8_t fenetre2 = 0b01000000 & receivedData_F;
+		
 		//LED1
 		if(porte == 0b00000001){
 			PORTC |= (1 << LED1);
@@ -72,8 +84,8 @@ int main() {
 		
 //////////////////////////////// Vérifier que le slave envoi bien la valeur demandé
 		/*Parler au Slave F*/
-		receivedData_F = SPI_MasterTransmit(0xFF);// Envoyer la commande pour allumer les leds
-		if(receivedData_F == 0b11111111){
+		receivedData_F = SPI_MasterTransmitF(0xFF);// Envoyer la commande pour allumer les leds
+		if(receivedData == 0x00){
 			PORTC |= (1<<LED_ANALOG);
 		}
 		else{PORTC &= ~(1<<LED_ANALOG);}
