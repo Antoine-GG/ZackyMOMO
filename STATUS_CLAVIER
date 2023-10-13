@@ -1,0 +1,38 @@
+/*
+ * GccApplication1.cpp
+ *
+ * Created: 2023-10-13 13:43:21
+ * Author : Moncef Cherfi
+ */ 
+
+#include <avr/io.h>
+#include <util/delay.h>
+
+// Define input and output pins
+#define INPUT 4  
+#define OUTPUT 5
+
+int main(void) {
+	// Set LED_PIN as an output
+	DDRB |= (1 << OUTPUT);
+	DDRB &= ~(1 << INPUT);
+
+	while (1) {
+			uint8_t val = PINB & (1 << INPUT);
+		if (val) {
+			// Input pin is high, turn on the LED
+			PORTB |= (1 << OUTPUT);
+			} else {
+			// Input pin is low, blink the LED three times
+			for (int i = 0; i < 3; i++) {
+				PORTB |= (1 << OUTPUT);  // Turn on LED
+				_delay_ms(500);           // Delay for 500 ms
+				PORTB &= ~(1 << OUTPUT); // Turn off LED
+				_delay_ms(500);           // Delay for 500 ms
+			}
+		}_delay_ms(500);
+	}
+
+	return 0;
+}
+
