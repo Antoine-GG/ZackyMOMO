@@ -1,0 +1,32 @@
+//ESP-WROOM-32 (TRANSMITTER)
+
+const int TX_PIN = 18; // Choose any available GPIO pin
+const int BAUD_RATE = 9600; // Desired baud rate
+const int BIT_DELAY_US = 1000000 / BAUD_RATE; // Calculate bit duration in microseconds
+
+void setup() {
+  pinMode(TX_PIN, OUTPUT);
+  digitalWrite(TX_PIN, HIGH); // Start bit (HIGH)
+}
+
+void loop() {
+  bitBangUART_Transmit('A'); // Send 'A' character
+  delay(1000); // Delay between transmissions
+}
+
+void bitBangUART_Transmit(char data) {
+  // Start bit (LOW)
+  digitalWrite(TX_PIN, LOW);
+  delayMicroseconds(BIT_DELAY_US);
+
+  // Send data bits (LSB first)
+  for (int i = 0; i < 8; i++) {
+    digitalWrite(TX_PIN, data & 0x01); // Send the least significant bit
+    delayMicroseconds(BIT_DELAY_US);
+    data >>= 1; // Shift data to the right
+  }
+
+  // Stop bit (HIGH)
+  digitalWrite(TX_PIN, HIGH);
+  delayMicroseconds(BIT_DELAY_US);
+}
