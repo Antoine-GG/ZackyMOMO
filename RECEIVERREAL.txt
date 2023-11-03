@@ -1,0 +1,58 @@
+#include <avr/io.h>
+#include <util/delay.h>
+
+// Define UART parameters
+#define BAUD_RATE 9600
+#define F_CPU 16000000UL
+#define UBRR_VALUE ((F_CPU / (16UL * BAUD_RATE)) - 1)
+
+// Function to initialize software UART
+void UART_init() {
+    // Set RX (Receive) pin as an input
+    DDRD &= ~(1 << DDD0);
+    
+    // Set BAUD Rate
+    UBRR0H = (uint8_t)(UBRR_VALUE >> 8);
+    UBRR0L = (uint8_t)UBRR_VALUE;
+}
+
+// Function to receive a character
+char UART_receive_char() {
+    char receivedData = 0;
+    
+    // Wait for the start bit
+    while (PIND & (1 << PIND0));
+    
+    // Wait in the middle of the data bit
+    _delay_us(1000000 / BAUD_RATE / 2);
+    
+    for (int i = 0; i < 8; i++) {
+        _delay_us(1000000 / BAUD_RATE);
+        receivedData |= ((PIND & (1 << PIND0)) << i);
+    }
+    
+    // Wait for the stop bit
+    _delay_us(1000000 / BAUD_RATE);
+    
+    return receivedData;
+}
+
+int main() {
+    UART_init();
+    char receivedChar;
+    
+    while (1) {
+        // Receive a character
+        receivedChar = UART_receive_char();
+        
+        // Do something with the received character (e.g., you can print it)
+        // For simplicity, we'll just blink an LED
+        if (receivedChar == 'A') {
+            PORTB |= (1 << PORTB5); // Set an LED on
+            _delay_ms(500);
+            PORTB &= ~(1 << PORTB5); // Set an LED off
+        }
+    }
+
+    return 0;
+}
